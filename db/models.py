@@ -36,3 +36,33 @@ class Account(Base):
 
     created_at = Column(DateTime(), default=datetime.utcnow)
 
+
+class FbAccount(Base):
+    __tablename__ = 'facebook_account'  # noqa
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    is_active = Column(Integer, default=1)  # 可用性，通常用布尔值，但这里用整数表示（1表示可用，0表示不可用）
+
+    username = Column(String, nullable=False)
+    # email = Column(String, unique=True, nullable=False)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    password = Column(Text)
+    year = Column(Text)
+    month = Column(Text)
+    day = Column(Text)
+    
+    lastname = Column(Text)
+    firstname = Column(Text)
+    
+    
+    browser_id = Column(Text)
+    account_id = Column(Text)
+    
+    remark = Column(Text)
+    
+    
+    
+    created_at = Column(DateTime(), default=datetime.utcnow)
+    created_at = Column(DateTime(), onupdate=datetime.utcnow)
+

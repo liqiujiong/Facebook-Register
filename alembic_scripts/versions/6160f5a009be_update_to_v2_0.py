@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from sqlalchemy.sql import table, column
 from sqlalchemy.engine.reflection import Inspector
 
-from models import Account
+from db.models import Account
 
 
 # revision identifiers, used by Alembic.

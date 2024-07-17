@@ -21,11 +21,11 @@ from rich.logging import RichHandler
 
 # for database
 from database import get_session_maker
-from models import Account
+from db.models import Account
 from sqlalchemy.exc import SQLAlchemyError
 
 # for email and password generation
-import petname
+# import petname
 import secrets
 import string
 
@@ -90,10 +90,10 @@ if account_postfix and not account_postfix.startswith('@'):
     account_postfix = '@' + account_postfix
 
 # 检查配置
-if not all(
-        [account_postfix, client_key, pandora_next_website, IMAP_server, email_username, email_password, email_folder]):
-    log.critical('Please review your environment variable configurations!')
-    exit(-1)
+# if not all(
+#         [account_postfix, client_key, pandora_next_website, IMAP_server, email_username, email_password, email_folder]):
+#     log.critical('Please review your environment variable configurations!')
+#     exit(-1)
 # ------------------------------------------------------------------------------------
 
 class Register:

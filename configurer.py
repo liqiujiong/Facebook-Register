@@ -10,7 +10,7 @@ config_file = './config.yaml'
 def get_configuration():
     try:
         # 读取 YAML 配置文件
-        with open(config_file, 'r') as file:
+        with open(config_file, 'r',encoding="utf-8") as file:
             config = yaml.safe_load(file)
             return config
 

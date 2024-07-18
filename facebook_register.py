@@ -3,6 +3,7 @@ import random
 import time
 from faker import Faker
 from main import SeleniumDriverHelper
+from modules.browser_control import BrowserControl
 from tools.sms import Sms
 from tools.bit_api import openBrowser,createBrowser,deleteBrowser
 # for selenium
@@ -42,26 +43,22 @@ class FacebookRegister:
 
 
     
-    def __init__(self) -> None:
+    def __init__(self,browser_id = None) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._init_reg_info()
-        self._init_proxy()
-        self._init_sms()
+        self.driver = None
         self.helper = None
-        
+        self.browser_id = None
+        self._init_sms()
+        self._init_reg_info()
+        self._init_browser(browser_id)
+    
     def _init_sms(self):
         self.sms = Sms(server_url=self.sms_server_url, 
                        username=self.sms_username, 
                        password=self.sms_password,
                        sid=self.sms_sid)
 
-    
-    def _init_proxy(self):
-        self.proxy_server = 'pr.aa4koj1o.lunaproxy.net'
-        self.proxy_port = 12233
-        self.proxy_username = f'user-lu7069006-region-hk-sessid-{self.fb_password}-sesstime-30'
-        self.proxy_password = f'B8#U&E*asjXRg$'
-    
+
     def _init_reg_info(self):
         self.name = self.faker.name_female()
         self.firstname = self.name[1:]
@@ -70,64 +67,39 @@ class FacebookRegister:
         self.month = str(random.randint(1,12))
         self.day = str(random.randint(1,28))
         self.fb_password = self.faker.password(length=15, special_chars=False, digits=True, upper_case=True, lower_case=True)
-    
-    def _create_browser(self):
-        json_data = {
-            'name': self.win_name,  # 窗口名称
-            'remark': '',  # 备注
-            'groupId': self.browser_group_id,
-            # 'proxyMethod': 3,  # 代理方式 2自定义 3 提取IP
-            # # 代理类型  ['noproxy', 'http', 'https', 'socks5', 'ssh']
-            # 'proxyType': 'socks5',
 
-            # 'dynamicIpUrl': 'http://43.156.34.150:777/proxy/get_proxy_list?key=a850b22464e69475ac69b916dfe1307e&index=9&num=1',
-            "proxyMethod": 2,
-            "proxyType": "socks5",
-            "host": self.proxy_server,
-            "port": self.proxy_port,
-            "proxyUserName": self.proxy_username,
-            "proxyPassword": self.proxy_password,
-            "duplicateCheck":1,
-            'dynamicIpChannel': 'common',
-            'isDynamicIpChangeIp': True,
-            "browserFingerPrint": {},
-            "isIpCreateLanguage ": False,
-            "languages":'zh-HK',
-            # "platform":"https://www.facebook.com",
-            # "userName":phone,
-            # "password":fb_password,
-            "remark":self.reg_info
-        }
-        self.browser_id = createBrowser(json_data)
-        return self.browser_id
 
-    def _connect_selenium(self,browser_id):
+    def _init_browser(self,browser_id):
+        self.phone = self.sms.get_phone(
+            exclude='192'
+            # ascription='1',
+            # paragraph='167',
+            # province='34'
+        )
+        self.win_name = f'facebook-{self.phone}'
+        self.reg_info = f'{self.phone},{self.firstname},{self.lastname},{self.year},{self.month},{self.day},{self.fb_password}'
+        self.logger.info(f'获取手机号码[{self.phone}]-->{self.reg_info}')
         
-        open_res = openBrowser(browser_id)
         
-        driverPath = open_res['data']['driver']
-        debuggerAddress = open_res['data']['http']
-
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_experimental_option("debuggerAddress", debuggerAddress)
-
-        chrome_service = Service(driverPath)
-        driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
-        
-        self.logger.info(f'connect driver:{open_res}')
-        
-        self.helper = SeleniumDriverHelper(driver)
-        self.driver = driver
+        bc = BrowserControl()
+        if not browser_id:
+            browser_id = bc.create_browser(
+                borwser_name=self.win_name,
+                remark=self.reg_info
+            )
+        driver = bc.connect_browser(browser_id)
+        self.driver = bc.driver
+        self.helper = bc.helper
+        self.browser_id = browser_id
         return driver
-
 
     def _click_home_reg_btn(self,driver):
         创建账户Xpath = '/html/body/div[1]/div[1]/div[1]/div/div/div/div[2]/div/div[1]/form/div[5]/a'
         self.helper.wait_until_appear(By.XPATH,创建账户Xpath)
         reg_button = self.helper.find_or_fail(By.XPATH,创建账户Xpath)
-        time.sleep(random.uniform(3,6))
+        time.sleep(random.uniform(6,12))
         reg_button.click()
-        time.sleep(random.uniform(3,6))
+        time.sleep(random.uniform(6,12))
 
     def _input_reg_form(self,driver,phone,lastname,firstname,password,year,month,day):
         username_input = WebDriverWait(driver, 30).until(
@@ -179,9 +151,9 @@ class FacebookRegister:
         )
         time.sleep(random.uniform(2,3))
         submit_reg.click()
-        time.sleep(random.uniform(4,7))
+        time.sleep(random.uniform(4,10))
         submit_reg.click()
-        time.sleep(random.uniform(10,20))
+        time.sleep(random.uniform(10,30))
 
     def _submit_reg_check(self,driver) -> bool:
         
@@ -231,12 +203,14 @@ class FacebookRegister:
             EC.presence_of_element_located((By.NAME, "code"))
         )
         sms_input.send_keys(sms_code)
+        time.sleep(random.uniform(2,6))
         success_reg_btn = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.NAME, "confirm"))
         )
         success_reg_btn.click()
     
     def _reg_success_confirm(self,driver):
+        time.sleep(random.uniform(2,6))
         success_reg_btn = WebDriverWait(driver, 90).until(
             EC.presence_of_element_located((By.LINK_TEXT, "確定"))
         )
@@ -253,20 +227,7 @@ class FacebookRegister:
         driver.get('https://www.facebook.com/')
         
     def start_reg(self):
-        self.phone = self.sms.get_phone(
-            exclude='192'
-            # ascription='1',
-            # paragraph='167',
-            # province='34'
-        )
-        self.win_name = f'facebook-{self.phone}'
-        self.reg_info = f'{self.phone},{self.firstname},{self.lastname},{self.year},{self.month},{self.day},{self.fb_password}'
-        self.logger.info(f'获取手机号码[{self.phone}]-->{self.reg_info}')
-        
-        browser_id = self._create_browser()
-        
-        driver = self._connect_selenium(browser_id)
-        
+        driver = self.driver
         sms_code = None
         
         # 进行页面打开、打开表单页面

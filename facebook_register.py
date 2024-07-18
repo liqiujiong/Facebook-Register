@@ -59,7 +59,7 @@ class FacebookRegister:
     def _init_proxy(self):
         self.proxy_server = 'pr.aa4koj1o.lunaproxy.net'
         self.proxy_port = 12233
-        self.proxy_username = f'user-lu7069006-region-hk-sessid-{self.fb_password}-sesstime-90'
+        self.proxy_username = f'user-lu7069006-region-hk-sessid-{self.fb_password}-sesstime-30'
         self.proxy_password = f'B8#U&E*asjXRg$'
     
     def _init_reg_info(self):
@@ -91,6 +91,8 @@ class FacebookRegister:
             'dynamicIpChannel': 'common',
             'isDynamicIpChangeIp': True,
             "browserFingerPrint": {},
+            "isIpCreateLanguage ": False,
+            "languages":'zh-HK',
             # "platform":"https://www.facebook.com",
             # "userName":phone,
             # "password":fb_password,
@@ -177,29 +179,34 @@ class FacebookRegister:
         )
         time.sleep(random.uniform(2,3))
         submit_reg.click()
-        time.sleep(random.uniform(1,3))
+        time.sleep(random.uniform(4,7))
         submit_reg.click()
-        time.sleep(random.uniform(15,30))
+        time.sleep(random.uniform(10,20))
 
     def _submit_reg_check(self,driver) -> bool:
         
-        
         url = driver.current_url
-        if 'checkpoint' in url:
-            logging.info(f"注册失败,账号需要验证")
-            
-        if self.helper.find_or_fail(By.id,"reg_error_inner"):
-            logging.info(f"注册失败,提交注册出现拦截")
-            
-        reg_tip_span = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "uiHeaderTitle"))
-        )
-        tip = reg_tip_span.text
-        if tip != '輸入短訊中的確認碼':
-            logging.info(f"注册失败~{tip},号码拉黑")
-            return False
+        if url == 'https://www.facebook.com/':
+            error = self.helper.find_or_fail(By.ID,"reg_error_inner")
+            if error:
+                logging.info(f"注册失败,提交注册出现拦截:{error.text}")
+                return False
         else:
-            logging.info(f"注册成功：接收短信验证码")
+            logging.info(f"提交成功,进入新页面{url}")
+            if 'checkpoint' in url:
+                logging.info(f"注册失败,账号需要申诉验证")
+                return False
+            # reg_tip_span = WebDriverWait(driver, 30).until(
+            #     EC.presence_of_element_located((By.CLASS_NAME, "uiHeaderTitle"))
+            # )
+            # tip = reg_tip_span.text
+            # if tip != '輸入短訊中的確認碼':
+            #     logging.info(f"注册失败~{tip},号码拉黑")
+            #     return False
+            # else:
+            #     logging.info(f"注册成功：接收短信验证码")
+            #     return True
+
             return True
 
     def _resend_sms_code(self,driver):
@@ -247,10 +254,10 @@ class FacebookRegister:
         
     def start_reg(self):
         self.phone = self.sms.get_phone(
-            # exclude='192',
-            ascription='1',
-            paragraph='167',
-            province='34'
+            exclude='192'
+            # ascription='1',
+            # paragraph='167',
+            # province='34'
         )
         self.win_name = f'facebook-{self.phone}'
         self.reg_info = f'{self.phone},{self.firstname},{self.lastname},{self.year},{self.month},{self.day},{self.fb_password}'
@@ -297,9 +304,18 @@ class FacebookRegister:
         try:
             self._submit_reg(driver)
             submit_result = self._submit_reg_check(driver)
+            assert submit_result,'注册失败'
             time.sleep(random.uniform(5,20))
+        except Exception as e:
+            self.logger.error(f'提交注册异常:{e}-拉黑号码->{self.win_name}')
+            self.sms.blacklist_phone(self.phone)
+            deleteBrowser(self.browser_id)
+            return
+        
+        # 提交成功 进行发信
+        try:
             resend = self._resend_sms_code(driver)
-            if submit_result and resend:
+            if resend:
                 for i in range(15):
                     time.sleep(5)
                     sms_res = self.sms.get_message(self.phone)
@@ -311,12 +327,10 @@ class FacebookRegister:
                     assert False,'接收不到短信作废拉黑删除窗口'
             else:
                 assert False,'提交注册发送短信失败作废删除窗口'
-            
         except Exception as e:
-            self.logger.error(f'提交注册发短信异常-->{self.win_name}')
-            self.sms.blacklist_phone(self.phone)
-            # self.sms.release_phone(self.phone)
-            deleteBrowser(self.browser_id)
+            self.logger.error(f'进行发信异常:{e}-请确认->{self.win_name}')
+            # self.sms.blacklist_phone(self.phone)
+            # deleteBrowser(self.browser_id)
             return
         
         # 获取验证码成功、输入验证码、提交注册
@@ -324,7 +338,7 @@ class FacebookRegister:
             self._submit_sms_code(driver,sms_code)
             self._reg_success_confirm(driver)
         except Exception as e:
-            self.logger.error(f'提交注册异常[{e}]-->验证码:{sms_code}')
+            self.logger.error(f'短信验证异常[{e}]-->验证码:{sms_code}')
 
         
 if __name__ == '__main__':

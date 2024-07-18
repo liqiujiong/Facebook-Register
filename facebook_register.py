@@ -33,18 +33,21 @@ log = logging.getLogger(__name__)
 
 class FacebookRegister:
     # 初始化注册信息
-    faker = Faker('zh_CN') # 注册名字:zh_TW繁体
+    faker = Faker('zh_TW') # 注册名字:zh_TW繁体
     sms_server_url = "https://api.haozhuma.com"
     sms_username = "testfacebook123"
     sms_password = "testfacebook123a"
     sms_sid = 72510 # 对接项目码
     browser_group_id = '2c9bc04790aae7ca0190b5cb34182ea7' # 新注册id
 
+
+    
     def __init__(self) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self._init_reg_info()
         self._init_proxy()
         self._init_sms()
+        self.helper = None
         
     def _init_sms(self):
         self.sms = Sms(server_url=self.sms_server_url, 
@@ -95,20 +98,32 @@ class FacebookRegister:
         }
         self.browser_id = createBrowser(json_data)
         return self.browser_id
-        
 
-    def _connect_selenium(self,driverPath,debuggerAddress):
+    def _connect_selenium(self,browser_id):
+        
+        open_res = openBrowser(browser_id)
+        
+        driverPath = open_res['data']['driver']
+        debuggerAddress = open_res['data']['http']
+
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_experimental_option("debuggerAddress", debuggerAddress)
 
         chrome_service = Service(driverPath)
-        self.driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
-        return self.driver
+        driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+        
+        self.logger.info(f'connect driver:{open_res}')
+        
+        self.helper = SeleniumDriverHelper(driver)
+        self.driver = driver
+        return driver
+
 
     def _click_home_reg_btn(self,driver):
-        reg_button = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.LINK_TEXT, "建立新帳戶"))
-        )
+        创建账户Xpath = '/html/body/div[1]/div[1]/div[1]/div/div/div/div[2]/div/div[1]/form/div[5]/a'
+        self.helper.wait_until_appear(By.XPATH,创建账户Xpath)
+        reg_button = self.helper.find_or_fail(By.XPATH,创建账户Xpath)
+        time.sleep(random.uniform(3,6))
         reg_button.click()
         time.sleep(random.uniform(3,6))
 
@@ -139,11 +154,11 @@ class FacebookRegister:
             EC.presence_of_element_located((By.NAME, "sex"))
         )
         time.sleep(random.uniform(2,3))
-        username_input.send_keys(phone)
-        time.sleep(random.uniform(2,3))
         lastname_input.send_keys(lastname)
         time.sleep(random.uniform(2,3))
         firstname_input.send_keys(firstname)
+        time.sleep(random.uniform(2,3))
+        username_input.send_keys(phone)
         time.sleep(random.uniform(2,3))
         password_input.send_keys(password)
         time.sleep(random.uniform(2,3))
@@ -156,20 +171,32 @@ class FacebookRegister:
         sex_click.click() # 默认注册女性
 
     def _submit_reg(self,driver):
-        time.sleep(random.uniform(3,10))
+        # time.sleep(random.uniform(3,10))
         submit_reg = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.NAME, "websubmit"))
         )
+        time.sleep(random.uniform(2,3))
+        submit_reg.click()
+        time.sleep(random.uniform(1,3))
         submit_reg.click()
         time.sleep(random.uniform(15,30))
 
     def _submit_reg_check(self,driver) -> bool:
+        
+        
+        url = driver.current_url
+        if 'checkpoint' in url:
+            logging.info(f"注册失败,账号需要验证")
+            
+        if self.helper.find_or_fail(By.id,"reg_error_inner"):
+            logging.info(f"注册失败,提交注册出现拦截")
+            
         reg_tip_span = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CLASS_NAME, "uiHeaderTitle"))
         )
         tip = reg_tip_span.text
         if tip != '輸入短訊中的確認碼':
-            print(f'注册失败~{tip},号码拉黑')
+            logging.info(f"注册失败~{tip},号码拉黑")
             return False
         else:
             logging.info(f"注册成功：接收短信验证码")
@@ -219,18 +246,19 @@ class FacebookRegister:
         driver.get('https://www.facebook.com/')
         
     def start_reg(self):
-        self.phone = self.sms.get_phone(exclude='192')
+        self.phone = self.sms.get_phone(
+            # exclude='192',
+            ascription='1',
+            paragraph='167',
+            province='34'
+        )
         self.win_name = f'facebook-{self.phone}'
         self.reg_info = f'{self.phone},{self.firstname},{self.lastname},{self.year},{self.month},{self.day},{self.fb_password}'
         self.logger.info(f'获取手机号码[{self.phone}]-->{self.reg_info}')
         
         browser_id = self._create_browser()
-        open_res = openBrowser(browser_id)
-        self.logger.info(f'open driver[{browser_id}]-->{self.win_name}')
         
-        driverPath = open_res['data']['driver']
-        debuggerAddress = open_res['data']['http']
-        driver = self._connect_selenium(driverPath,debuggerAddress)
+        driver = self._connect_selenium(browser_id)
         
         sms_code = None
         
@@ -272,7 +300,7 @@ class FacebookRegister:
             time.sleep(random.uniform(5,20))
             resend = self._resend_sms_code(driver)
             if submit_result and resend:
-                for i in range(10):
+                for i in range(15):
                     time.sleep(5)
                     sms_res = self.sms.get_message(self.phone)
                     if isinstance(sms_res,dict) and sms_res.get('yzm'):
@@ -304,3 +332,9 @@ if __name__ == '__main__':
         fb_reg = FacebookRegister()
         fb_reg.start_reg()
     
+    # TEST 
+    # fb_reg = FacebookRegister()
+    # browser_id = 'aa855a11b1af4348af2158b50ff1f766'
+    # driver = fb_reg._connect_selenium(browser_id)
+    
+    # fb_reg._click_home_reg_btn(driver)

@@ -30,14 +30,6 @@ def openBrowser(id):  # 直接指定ID打开窗口，也可以使用 createBrows
     json_data = {"id": f'{id}'}
     res = requests.post(f"{url}/browser/open",
                         data=json.dumps(json_data), headers=headers).json()
-    print(res)
-    return res
-
-def autoPaste(id,text):
-    json_data = {"browserId": f'{id}',"url":text}
-    print(json_data)
-    res = requests.post(f"{url}/autopaste",
-                        data=json.dumps(json_data), headers=headers).json()
     return res
 
 def closeBrowser(id):  # 关闭窗口
@@ -69,7 +61,7 @@ def fetchBrowserDetail(id):
     }
     res = requests.post(f"{url}/browser/detail",
                         data=json.dumps(json_data), headers=headers).json()
-    return res.get('data')
+    return res
 
 
 

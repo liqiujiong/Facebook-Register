@@ -14,7 +14,7 @@ class Sms:
         url = f"{self.server_url}/sms/?api=login&user={self.username}&pass={self.password}"
         response = requests.get(url)
         data = response.json()
-        print(data)
+        # print(data)
         if data.get('code') == 0:
             self.token = data.get('token')
         else:

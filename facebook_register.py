@@ -71,9 +71,9 @@ class FacebookRegister:
 
     def _init_browser(self,browser_id):
         self.phone = self.sms.get_phone(
-            exclude='192'
+            # exclude='192'
             # ascription='1',
-            # paragraph='167',
+            paragraph='167'
             # province='34'
         )
         self.win_name = f'facebook-{self.phone}'
@@ -290,8 +290,8 @@ class FacebookRegister:
                 assert False,'提交注册发送短信失败作废删除窗口'
         except Exception as e:
             self.logger.error(f'进行发信异常:{e}-请确认->{self.win_name}')
-            # self.sms.blacklist_phone(self.phone)
-            # deleteBrowser(self.browser_id)
+            self.sms.blacklist_phone(self.phone)
+            deleteBrowser(self.browser_id)
             return
         
         # 获取验证码成功、输入验证码、提交注册
@@ -303,10 +303,10 @@ class FacebookRegister:
 
         
 if __name__ == '__main__':
-    for i in range(40):
+    for i in range(10):
         fb_reg = FacebookRegister()
         fb_reg.start_reg()
-    
+        
     # TEST 
     # fb_reg = FacebookRegister()
     # browser_id = 'aa855a11b1af4348af2158b50ff1f766'

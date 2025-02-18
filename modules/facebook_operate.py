@@ -1,10 +1,11 @@
 
 import time
+import logging
 from selenium.webdriver.common.by import By
-
 from modules.browser_control import BrowserControl
 from tools.selenium_driver_helper import SeleniumDriverHelper
 from tools.sercury import get_2fa_code
+log = logging.getLogger(__name__)
 
 class FacebookOperate:
     def __init__(self,browser_id,capture = False) -> None:
@@ -14,6 +15,7 @@ class FacebookOperate:
         
     def fetch_facebook_id(self):
         self.driver.get('https://www.facebook.com/profile.php')
+        
         if '?id=' in self.driver.current_url:
             return self.driver.current_url.split('=')[-1]
         else:

@@ -1,6 +1,6 @@
 
 from faker import Faker
-from tools.bit_api import createBrowser, fetchBrowserDetail, openBrowser
+from tools.bit_api import createBrowser, fetchBrowserDetail, openBrowser, updateBrowser
 from selenium import webdriver
 from seleniumwire import webdriver as wire_webdriver
 from selenium.common.exceptions import TimeoutException
@@ -31,7 +31,28 @@ class BrowserControl():
         self.proxy_username = f'user-lu7069006-region-{proxy_area}-sessid-{self.session_id}-sesstime-30'
         self.proxy_password = f'B8#U&E*asjXRg$'
         self.browser_data = None
+        self.browser_id = None
+        self.browser_detail = None
+    
+    def fetch_browser_detail(self):
+        res = fetchBrowserDetail(self.browser_id)
+        logging.info(f'获取{self.browser_id}窗口详情')
+        if res.get("success"):
+            self.browser_detail = res.get('data')
+            return self.browser_detail
+        else:
+            logging.error(f'获取浏览器窗口错误:{res}')
         
+    def update_browser_info(self,**data):
+        logging.info(f'更新浏览器窗口信息:{data}')
+        res = updateBrowser([self.browser_id],{},**data)
+        if res.get("success"):
+            logging.info(f'更新浏览器窗口成功')
+            return True
+        else:
+            logging.error(f'更新浏览器窗口错误{res}')
+        
+    
     def create_browser(self,borwser_name,remark):
         # 创建一个浏览器环境
         json_data = {
@@ -112,7 +133,7 @@ class BrowserControl():
             )
         
         self.logger.info(f'connect driver:{open_res}')
-        
+        self.browser_id = browser_id
         self.driver = driver
         self.helper = SeleniumDriverHelper(self.driver)
         return driver

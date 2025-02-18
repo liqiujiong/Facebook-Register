@@ -4,8 +4,9 @@ import time
 from faker import Faker
 from main import SeleniumDriverHelper
 from modules.browser_control import BrowserControl
+from modules.facebook_operate import FacebookOperate
 from tools.sms import Sms
-from tools.bit_api import openBrowser,createBrowser,deleteBrowser
+from tools.bit_api import updateBrowser,deleteBrowser
 # for selenium
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -36,8 +37,8 @@ class FacebookRegister:
     # 初始化注册信息
     faker = Faker('zh_TW') # 注册名字:zh_TW繁体
     sms_server_url = "https://api.haozhuma.com"
-    sms_username = "testfacebook123"
-    sms_password = "testfacebook123a"
+    sms_username = "8641aaa8e3197ff75449ad3b54dc9136e573b9e7f280fadffe58023a4c0dc68d"
+    sms_password = "8641aaa8e3197ff7150ddb38c3cb329295debacbf298ad842c031ed923404594"
     sms_sid = 72510 # 对接项目码
     browser_group_id = '2c9bc04790aae7ca0190b5cb34182ea7' # 新注册id
 
@@ -71,9 +72,9 @@ class FacebookRegister:
 
     def _init_browser(self,browser_id):
         self.phone = self.sms.get_phone(
-            # exclude='192'
+            exclude='192'
             # ascription='1',
-            paragraph='167'
+            # paragraph='167'
             # province='34'
         )
         self.win_name = f'facebook-{self.phone}'
@@ -153,7 +154,7 @@ class FacebookRegister:
         submit_reg.click()
         time.sleep(random.uniform(4,10))
         submit_reg.click()
-        time.sleep(random.uniform(10,30))
+        time.sleep(random.uniform(10,20))
 
     def _submit_reg_check(self,driver) -> bool:
         
@@ -301,6 +302,12 @@ class FacebookRegister:
         except Exception as e:
             self.logger.error(f'短信验证异常[{e}]-->验证码:{sms_code}')
 
+        # 打开主页，更新自己的fb id
+        fo = FacebookOperate(self.browser_id)
+        fb_id = fo.fetch_facebook_id()
+        new_browser_data = {"name":fb_id}
+        fo.browser_control.update_browser_info(**new_browser_data)
+        # fo.update_
         
 if __name__ == '__main__':
     for i in range(10):
@@ -313,3 +320,8 @@ if __name__ == '__main__':
     # driver = fb_reg._connect_selenium(browser_id)
     
     # fb_reg._click_home_reg_btn(driver)
+    
+    # fo = FacebookOperate('9626177c30364545bc1685f822cdbf44')
+    # fb_id = fo.fetch_facebook_id()
+    # new_browser_data = {"name":fb_id}
+    # fo.browser_control.update_browser_info(**new_browser_data)

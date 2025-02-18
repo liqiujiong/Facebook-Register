@@ -18,12 +18,15 @@ def createBrowser(json_data):  # 创建或者更新窗口，指纹参数 browser
     return browserId
 
 
-def updateBrowser():  # 更新窗口，支持批量更新和按需更新，ids 传入数组，单独更新只传一个id即可，只传入需要修改的字段即可，比如修改备注，具体字段请参考文档，browserFingerPrint指纹对象不修改，则无需传入
-    json_data = {'ids': ['93672cf112a044f08b653cab691216f0'],
-                 'remark': '我是一个备注', 'browserFingerPrint': {}}
+def updateBrowser(ids,browserFingerPrint={},**kwargs):  
+    # 更新窗口，支持批量更新和按需更新，ids 传入数组，单独更新只传一个id即可，只传入需要修改的字段即可，比如修改备注，具体字段请参考文档，browserFingerPrint指纹对象不修改，则无需传入
+    json_data = {'ids': ids,
+                 'browserFingerPrint': browserFingerPrint,
+                 **kwargs
+                 }
     res = requests.post(f"{url}/browser/update/partial",
                         data=json.dumps(json_data), headers=headers).json()
-    print(res)
+    return res
 
 
 def openBrowser(id):  # 直接指定ID打开窗口，也可以使用 createBrowser 方法返回的ID
@@ -76,5 +79,10 @@ if __name__ == '__main__':
     # time.sleep(10)  # 等待10秒自动删掉窗口
 
     # deleteBrowser(browser_id)
-    res = fetchBrowserList()
-    print(res)
+    # res = fetchBrowserList()
+    # print(res)
+
+    data = {
+        "name":'hello'
+    }
+    updateBrowser(["9626177c30364545bc1685f822cdbf44"],{},**data)
